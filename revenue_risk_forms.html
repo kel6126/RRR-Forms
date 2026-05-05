@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Revenue Risk Roundtable — Project Updates</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#1B2A4A;--orange:#F47920;--white:#FFFFFF;
+  --bg:#F4F6FA;--card:#FFFFFF;--border:#E5E7EB;
+  --text:#111827;--text2:#6B7280;--text3:#9CA3AF;
+  --red-bg:#FCEBEB;--red-txt:#A32D2D;
+  --amb-bg:#FAEEDA;--amb-txt:#633806;
+  --grn-bg:#EAF3DE;--grn-txt:#27500A;
+  --blue-bg:#EFF6FF;--blue-txt:#1D4ED8;
+  --inp-bg:#F9FAFB;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;padding-bottom:40px}
+
+/* Header */
+.hdr{background:var(--navy);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:40}
+.logo{width:28px;height:28px;background:var(--orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.hdr-text{color:#fff;font-size:14px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Tabs */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:39}
+.tab-btn{flex:1;padding:14px 8px;font-size:14px;font-weight:500;color:var(--text2);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* Wrap */
+.wrap{padding:16px}
+
+/* Project picker */
+.proj-picker{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:12px;overflow:hidden}
+.picker-input-wrap{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.picker-input-wrap svg{color:var(--text3);flex-shrink:0;width:16px;height:16px}
+.picker-input{border:none;background:transparent;font-size:15px;color:var(--text);flex:1;outline:none}
+.picker-input::placeholder{color:var(--text3)}
+.proj-list{max-height:220px;overflow-y:auto}
+.proj-item{padding:11px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.proj-item:last-child{border-bottom:none}
+.proj-item:active{background:var(--bg)}
+.proj-item-name{color:var(--text);font-weight:500}
+.proj-item-owner{font-size:12px;color:var(--text3)}
+.proj-item-status{font-size:11px;font-weight:500;padding:2px 8px;border-radius:8px;flex-shrink:0;margin-left:8px}
+.proj-selected{background:var(--bg);padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.proj-selected-name{font-size:14px;font-weight:500;color:var(--navy)}
+.proj-selected-owner{font-size:12px;color:var(--text2);margin-top:2px}
+.clear-btn{font-size:12px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:4px 6px;border-radius:6px}
+.clear-btn:active{background:var(--border)}
+
+/* Context card */
+.context-card{background:var(--blue-bg);border-radius:10px;border:1px solid #BFDBFE;padding:12px 14px;margin-bottom:12px}
+.context-label{font-size:11px;font-weight:500;color:var(--blue-txt);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.context-last{font-size:13px;color:#374151;line-height:1.55}
+.context-meta{font-size:11px;color:#6B7280;margin-top:5px}
+
+/* Form card */
+.form-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px;margin-bottom:12px}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.field label .req{color:#EF4444}
+.field input,.field textarea,.field select{width:100%;background:var(--inp-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:15px;color:var(--text);outline:none;-webkit-appearance:none;font-family:inherit}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--orange);background:#fff}
+.field textarea{min-height:90px;resize:none;line-height:1.55}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.field-hint{font-size:12px;color:var(--text3);margin-top:5px}
+.section-label{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* Status buttons */
+.status-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px}
+.status-opt{padding:8px 6px;border-radius:8px;border:1.5px solid var(--border);background:transparent;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);text-align:center;transition:all .15s}
+.status-opt.active-crit{background:var(--red-bg);color:var(--red-txt);border-color:#F5B5B5}
+.status-opt.active-risk{background:var(--amb-bg);color:var(--amb-txt);border-color:#F5D5A5}
+.status-opt.active-track{background:var(--grn-bg);color:var(--grn-txt);border-color:#B5D99A}
+
+/* Submit button */
+.submit-btn{width:100%;padding:14px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer;margin-top:4px;transition:opacity .15s}
+.submit-btn:active{opacity:.85}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* Success state */
+.success-card{background:var(--grn-bg);border:1px solid #B5D99A;border-radius:12px;padding:20px 16px;text-align:center;margin-bottom:12px}
+.success-icon{font-size:32px;margin-bottom:8px}
+.success-title{font-size:16px;font-weight:500;color:var(--grn-txt);margin-bottom:4px}
+.success-sub{font-size:13px;color:#3B6D11}
+.another-btn{margin-top:12px;padding:10px 24px;border-radius:8px;border:1.5px solid #639922;background:transparent;color:#639922;font-size:14px;font-weight:500;cursor:pointer}
+
+/* Helper notice */
+.notice{background:var(--amb-bg);border-radius:10px;border-left:3px solid var(--orange);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--amb-txt);line-height:1.55}
+
+/* Config modal */
+.config-bar{background:var(--navy);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.config-bar span{font-size:12px;color:#9CA3AF}
+.config-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #374151;background:transparent;color:#9CA3AF;cursor:pointer}
+.config-btn:active{background:#374151}
+.config-panel{background:#1F2937;padding:12px 16px;border-bottom:1px solid #374151;display:none}
+.config-panel.open{display:block}
+.config-field{margin-bottom:10px}
+.config-field label{display:block;font-size:11px;color:#9CA3AF;margin-bottom:4px;font-family:monospace}
+.config-field input{width:100%;background:#111827;border:1px solid #374151;border-radius:6px;padding:7px 10px;font-size:12px;color:#E5E7EB;font-family:monospace;outline:none}
+.config-field input:focus{border-color:var(--orange)}
+.config-save{padding:7px 16px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500}
+.config-status{font-size:11px;color:#6EE7B7;margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- Config bar (admin only, hidden after setup) -->
+<div class="config-bar">
+  <span>Power Automate endpoints</span>
+  <button class="config-btn" onclick="toggleConfig()">Configure</button>
+</div>
+<div class="config-panel" id="cfg">
+  <div class="config-field">
+    <label>UPDATE flow URL (Form A)</label>
+    <input id="cfg-update" placeholder="https://prod-xx.westus.logic.azure.com/...">
+  </div>
+  <div class="config-field">
+    <label>NEW PROJECT flow URL (Form B)</label>
+    <input id="cfg-newproj" placeholder="https://prod-xx.westus.logic.azure.com/...">
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="config-save" onclick="saveConfig()">Save</button>
+    <span class="config-status" id="cfg-ok" style="display:none">Saved</span>
+  </div>
+  <div style="font-size:11px;color:#6B7280;margin-top:8px;line-height:1.5">Paste the HTTP trigger URL from each Power Automate flow. These are stored in your browser — set once and never touch again.</div>
+</div>
+
+<div class="hdr">
+  <div class="logo">A</div>
+  <span class="hdr-text">Revenue Risk Roundtable</span>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('update',this)">Submit update</button>
+  <button class="tab-btn" onclick="switchTab('newproj',this)">Add new project</button>
+</div>
+
+<!-- ══ FORM A — SUBMIT UPDATE ══════════════════════════════════════════════ -->
+<div id="tab-update" class="wrap">
+
+  <div id="success-update" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Update submitted</div>
+      <div class="success-sub" id="success-update-msg"></div>
+    </div>
+    <button class="another-btn" onclick="resetUpdate()">Submit another update</button>
+  </div>
+
+  <div id="form-update-body">
+    <div class="notice">Pick your project below, fill in your update, and tap Submit. Only fill in the optional fields if something has changed.</div>
+
+    <!-- Project picker A -->
+    <div class="proj-picker">
+      <div id="picker-a-input" class="picker-input-wrap">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l2.5 2.5"/></svg>
+        <input class="picker-input" id="proj-search-a" placeholder="Search project name…" oninput="filterProjects('a')" onfocus="showList('a')" autocomplete="off">
+      </div>
+      <div id="picker-a-list" class="proj-list" style="display:none"></div>
+      <div id="picker-a-selected" style="display:none"></div>
+    </div>
+
+    <!-- Context card (shows last update) -->
+    <div id="context-card" class="context-card" style="display:none">
+      <div class="context-label">Last update</div>
+      <div class="context-last" id="context-text"></div>
+      <div class="context-meta" id="context-meta"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-label">Required</div>
+      <div class="field">
+        <label>Your name <span class="req">*</span></label>
+        <input type="text" id="a-name" placeholder="e.g. Jon Clark" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Update <span class="req">*</span></label>
+        <textarea id="a-update" placeholder="What happened since last update? What are the next steps?"></textarea>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-label">Only if something changed</div>
+      <div class="field">
+        <label>Status change</label>
+        <div class="status-row">
+          <button class="status-opt" onclick="pickStatus('On Track',this)" id="sbtn-track">On Track</button>
+          <button class="status-opt" onclick="pickStatus('At Risk',this)" id="sbtn-risk">At Risk</button>
+          <button class="status-opt" onclick="pickStatus('Critical',this)" id="sbtn-crit">Critical</button>
+        </div>
+        <div class="field-hint">Tap to change status. Leave untouched to keep current.</div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>BO start date</label>
+          <input type="date" id="a-bo-date">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Projected BO ($)</label>
+          <input type="number" id="a-bo-val" placeholder="e.g. 78000" min="0">
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:14px">
+        <div class="field" style="margin-bottom:0">
+          <label>Resolution date</label>
+          <input type="date" id="a-resolution">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Line down date</label>
+          <input type="date" id="a-linedown">
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitUpdate()" id="submit-a-btn">Submit update</button>
+  </div>
+</div>
+
+<!-- ══ FORM B — ADD NEW PROJECT ════════════════════════════════════════════ -->
+<div id="tab-newproj" class="wrap" style="display:none">
+
+  <div id="success-newproj" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Project added</div>
+      <div class="success-sub" id="success-newproj-msg"></div>
+    </div>
+    <button class="another-btn" onclick="resetNewProj()">Add another project</button>
+  </div>
+
+  <div id="form-newproj-body">
+    <div class="notice">Add a new project to the Revenue Risk Roundtable tracker. It will appear in the dashboard immediately.</div>
+
+    <div class="form-card">
+      <div class="section-label">Project identity</div>
+      <div class="field">
+        <label>Project name <span class="req">*</span></label>
+        <input type="text" id="b-name" placeholder="e.g. ambIT Pressure Sensor — Freudenberg EOL">
+      </div>
+      <div class="field">
+        <label>Your name (project owner) <span class="req">*</span></label>
+        <input type="text" id="b-owner" placeholder="Full name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>CR number</label>
+        <input type="text" id="b-cr" placeholder="e.g. HC-CM-008500 — leave blank if not yet assigned">
+      </div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Status <span class="req">*</span></label>
+          <select id="b-status">
+            <option value="On Track">On Track</option>
+            <option value="At Risk">At Risk</option>
+            <option value="Critical">Critical</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Section <span class="req">*</span></label>
+          <select id="b-section">
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Roundtable</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>Category <span class="req">*</span></label>
+        <select id="b-category">
+          <option>Parts Supply</option>
+          <option>Upgrades / Next Gen</option>
+          <option>Quality / Deviation</option>
+          <option>Regulatory</option>
+          <option>Supply Risk</option>
+          <option>Operations</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-label">Background &amp; context</div>
+      <div class="field">
+        <label>Background description <span class="req">*</span></label>
+        <textarea id="b-background" placeholder="What is this project? Why does it exist? What happens if it's not resolved?" style="min-height:110px"></textarea>
+        <div class="field-hint">2–4 sentences. Write it so someone unfamiliar can understand it.</div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-label">Backorder &amp; timeline — fill in what you know</div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>BO start date</label>
+          <input type="date" id="b-bo-date">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Projected BO ($)</label>
+          <input type="number" id="b-bo-val" placeholder="e.g. 50000" min="0">
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:14px">
+        <div class="field" style="margin-bottom:0">
+          <label>Line down date</label>
+          <input type="date" id="b-linedown">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Resolution date</label>
+          <input type="date" id="b-resolution">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-label">First update — optional</div>
+      <div class="field">
+        <label>Initial notes</label>
+        <textarea id="b-firstupdate" placeholder="What's been done so far? What are the immediate next steps?"></textarea>
+        <div class="field-hint">Creates the first entry in the update history for this project.</div>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitNewProj()" id="submit-b-btn">Add project to tracker</button>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+let CFG = {
+  updateUrl:  localStorage.getItem('rrr_update_url')  || '',
+  newprojUrl: localStorage.getItem('rrr_newproj_url') || '',
+};
+function toggleConfig(){
+  const p=document.getElementById('cfg');
+  p.classList.toggle('open');
+  document.getElementById('cfg-update').value=CFG.updateUrl;
+  document.getElementById('cfg-newproj').value=CFG.newprojUrl;
+}
+function saveConfig(){
+  CFG.updateUrl=document.getElementById('cfg-update').value.trim();
+  CFG.newprojUrl=document.getElementById('cfg-newproj').value.trim();
+  localStorage.setItem('rrr_update_url',CFG.updateUrl);
+  localStorage.setItem('rrr_newproj_url',CFG.newprojUrl);
+  const ok=document.getElementById('cfg-ok');
+  ok.style.display='inline';setTimeout(()=>ok.style.display='none',2000);
+}
+
+// ── Project data (replace with live SharePoint fetch when ready) ──────────────
+const PROJECTS = [
+  {name:'GR Battery / Fedco',         owner:'Jon Clark',      status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Jon Clark',   lastText:'UL Testing ~85% complete. ETA 05/01 for CB certification. No impact to timeline.'},
+  {name:'Needle Hub PMB',              owner:'Ron / Paul G',   status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Paul G',       lastText:'Metrology sent to team. Qualifying on critical dims only. High priority confirmed.'},
+  {name:'Ambit Button Guard',          owner:'Dyuti',          status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Dyuti',        lastText:'11 weeks of inventory. Validation started 4/17. Fit test at TJ May 7.'},
+  {name:'Cedic Connectors for Farrell',owner:'Matt Buckner',   status:'Critical', lastUpdate:'2026-04-23', lastAuthor:'Matt Buckner', lastText:'Pursuing RMA 405 PVC (readiness August). Y-connector ROD Jun 8.'},
+  {name:'ambIT Gearlink Investigation',owner:'Ujjal',          status:'Critical', lastUpdate:'2026-04-28', lastAuthor:'Ujjal',        lastText:'New sanded gear links passed 1000mL with no alarms or leaks.'},
+  {name:'MIC KEY Extension Sets',      owner:'Prasad Vijayan', status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Prasad',       lastText:'ID dim (Item 35) not meeting tolerance. Updating spec. Fit test complete.'},
+  {name:'Lidocaine / NaCl FDA Alert',  owner:'Nate Pachl',     status:'At Risk',  lastUpdate:'2026-04-28', lastAuthor:'Nate Pachl',   lastText:'Dev 00001 and 00002 approved. Dev 00003 routing. Sterility results 5/4.'},
+  {name:'Geodis DC Transfer',          owner:'Robin',          status:'Critical', lastUpdate:'2026-04-27', lastAuthor:'Robin',        lastText:'3.1 days behind — 4K/day vs 16K target. Will miss April month-end.'},
+  {name:'Middle East Supply Risk',     owner:'Nate Pachl',     status:'On Track', lastUpdate:'2026-04-28', lastAuthor:'Nate Pachl',   lastText:'Brent $110/bbl. Formosa 5090T awaiting last 6 orders. PVC through mid-Aug.'},
+  {name:'Project Pine CR8361',         owner:'Brad Gausewitz', status:'On Track', lastUpdate:'2026-04-23', lastAuthor:'Brad G',       lastText:'All PQs complete. DV 95%. On track to close 4/30.'},
+  {name:'5mL Glass Syringes Ink',      owner:'Juan',           status:'On Track', lastUpdate:'2026-04-23', lastAuthor:'Juan',         lastText:'SCN approved 3/19. No BO risk today.'},
+  {name:'ambIT Battery Cap Contact',   owner:'Elaina',         status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Elaina',       lastText:'Initial Peridot samples failed. New samples expected week of 5/4.'},
+  {name:'BD Needle Discontinuation',   owner:'Sergio',         status:'At Risk',  lastUpdate:'2026-04-23', lastAuthor:'Sergio',       lastText:'BD info received. CCB tentative May 5. RA and risk assessment pending.'},
+  {name:'Clogzapper / Burst Adapter',  owner:'Matt Buckner',   status:'On Track', lastUpdate:'2026-04-23', lastAuthor:'Matt Buckner', lastText:'Martech component received. Feasibility underway.'},
+  {name:'eIFU for EU',                 owner:'Mark / Ralitsa', status:'On Track', lastUpdate:'2026-04-20', lastAuthor:'Ralitsa',      lastText:'All priority codes in tech review. Target CR closure May 15.'},
+  {name:'CRG Grounding Pad (CONMED)',  owner:'Nate Pachl',     status:'At Risk',  lastUpdate:'2026-04-28', lastAuthor:'Nate Pachl',   lastText:'Nissha samples arriving 5/8. Assess CONMED supply through Q1 2027.'},
+  {name:'GTIN Change — SAP Level',     owner:'Lori / Erin',    status:'On Track', lastUpdate:'2026-04-21', lastAuthor:'Jolene',       lastText:'Collecting all feedback. GTIN process flow map in review.'},
+  {name:'Tungsten Shortage — CORFLO',  owner:'Nate Pachl',     status:'On Track', lastUpdate:'2026-04-20', lastAuthor:'Nate Pachl',   lastText:'Supply covered through Nov. Elmet as alt supplier.'},
+  {name:'COOLIEF Quad Pump',           owner:'Brian Mull',     status:'On Track', lastUpdate:'2026-04-23', lastAuthor:'Brian Mull',   lastText:'SCN approval estimated May 14.'},
+  {name:'MIC PEG Strap Deviation',     owner:'Omar',           status:'On Track', lastUpdate:'2026-04-23', lastAuthor:'Omar',         lastText:'CR 8534 in regulatory assessment.'},
+];
+
+const SC={Critical:{bg:'#FCEBEB',txt:'#A32D2D'},'At Risk':{bg:'#FAEEDA',txt:'#633806'},'On Track':{bg:'#EAF3DE',txt:'#27500A'}};
+
+// ── Project picker ────────────────────────────────────────────────────────────
+let selectedProject = null;
+let selectedStatus  = null;
+
+function filterProjects(side) {
+  const q = document.getElementById('proj-search-a').value.toLowerCase();
+  showList(side, q);
+}
+
+function showList(side, q='') {
+  const list = document.getElementById('picker-a-list');
+  const filtered = PROJECTS.filter(p => !q || p.name.toLowerCase().includes(q) || p.owner.toLowerCase().includes(q));
+  list.style.display = filtered.length ? '' : 'none';
+  list.innerHTML = filtered.map(p => {
+    const sc = SC[p.status] || SC['On Track'];
+    return `<div class="proj-item" onclick="selectProject(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+      <div>
+        <div class="proj-item-name">${p.name}</div>
+        <div class="proj-item-owner">${p.owner}</div>
+      </div>
+      <span class="proj-item-status" style="background:${sc.bg};color:${sc.txt}">${p.status}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectProject(p) {
+  selectedProject = p;
+  selectedStatus  = null;
+  // Reset status buttons
+  ['track','risk','crit'].forEach(k => {
+    const b = document.getElementById('sbtn-'+k);
+    b.className = 'status-opt';
+  });
+  // Hide list, hide input, show selected
+  document.getElementById('picker-a-list').style.display = 'none';
+  document.getElementById('picker-a-input').style.display = 'none';
+  const sel = document.getElementById('picker-a-selected');
+  const sc  = SC[p.status] || SC['On Track'];
+  sel.style.display = '';
+  sel.innerHTML = `<div>
+    <div class="proj-selected-name">${p.name}</div>
+    <div class="proj-selected-owner">${p.owner} · <span style="font-size:11px;font-weight:500;padding:1px 7px;border-radius:6px;background:${sc.bg};color:${sc.txt}">${p.status}</span></div>
+  </div>
+  <button class="clear-btn" onclick="clearProject()">Change</button>`;
+  // Show context
+  const ctx = document.getElementById('context-card');
+  ctx.style.display = '';
+  document.getElementById('context-text').textContent = p.lastText;
+  document.getElementById('context-meta').textContent = 'Last updated ' + p.lastUpdate + ' · by ' + p.lastAuthor;
+}
+
+function clearProject() {
+  selectedProject = null;
+  document.getElementById('picker-a-input').style.display = 'flex';
+  document.getElementById('picker-a-selected').style.display = 'none';
+  document.getElementById('picker-a-list').style.display = 'none';
+  document.getElementById('proj-search-a').value = '';
+  document.getElementById('context-card').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  const picker = document.querySelector('.proj-picker');
+  if (picker && !picker.contains(e.target)) {
+    document.getElementById('picker-a-list').style.display = 'none';
+  }
+});
+
+function pickStatus(s, btn) {
+  selectedStatus = s;
+  ['track','risk','crit'].forEach(k => document.getElementById('sbtn-'+k).className='status-opt');
+  const cls = s==='Critical'?'active-crit':s==='At Risk'?'active-risk':'active-track';
+  btn.className = 'status-opt '+cls;
+}
+
+// ── Submit update ─────────────────────────────────────────────────────────────
+async function submitUpdate() {
+  if (!selectedProject) { alert('Please select a project.'); return; }
+  const name   = document.getElementById('a-name').value.trim();
+  const update = document.getElementById('a-update').value.trim();
+  if (!name)   { alert('Please enter your name.'); return; }
+  if (!update) { alert('Please enter your update.'); return; }
+
+  const btn = document.getElementById('submit-a-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const payload = {
+    formType:      'update',
+    projectName:   selectedProject.name,
+    submittedBy:   name,
+    updateText:    update,
+    statusChange:  selectedStatus || '',
+    boStartDate:   document.getElementById('a-bo-date').value || '',
+    projectedBO:   document.getElementById('a-bo-val').value  || '',
+    resolution:    document.getElementById('a-resolution').value || '',
+    lineDown:      document.getElementById('a-linedown').value   || '',
+    submittedAt:   new Date().toISOString(),
+  };
+
+  await sendToFlow(CFG.updateUrl, payload, 'update');
+}
+
+// ── Submit new project ────────────────────────────────────────────────────────
+async function submitNewProj() {
+  const name = document.getElementById('b-name').value.trim();
+  const owner = document.getElementById('b-owner').value.trim();
+  const bg   = document.getElementById('b-background').value.trim();
+  if (!name)  { alert('Please enter the project name.'); return; }
+  if (!owner) { alert('Please enter the project owner name.'); return; }
+  if (!bg)    { alert('Please enter a background description.'); return; }
+
+  const btn = document.getElementById('submit-b-btn');
+  btn.disabled = true;
+  btn.textContent = 'Adding project…';
+
+  const payload = {
+    formType:      'newproject',
+    projectName:   name,
+    owner:         owner,
+    crNumber:      document.getElementById('b-cr').value.trim()         || '',
+    status:        document.getElementById('b-status').value,
+    section:       document.getElementById('b-section').value,
+    category:      document.getElementById('b-category').value,
+    background:    bg,
+    boStartDate:   document.getElementById('b-bo-date').value           || '',
+    projectedBO:   document.getElementById('b-bo-val').value            || '',
+    lineDown:      document.getElementById('b-linedown').value          || '',
+    resolution:    document.getElementById('b-resolution').value        || '',
+    firstUpdate:   document.getElementById('b-firstupdate').value.trim()|| '',
+    submittedAt:   new Date().toISOString(),
+  };
+
+  await sendToFlow(CFG.newprojUrl, payload, 'newproj');
+}
+
+// ── Core send function ────────────────────────────────────────────────────────
+async function sendToFlow(url, payload, formKey) {
+  const btnId   = formKey==='update'  ? 'submit-a-btn' : 'submit-b-btn';
+  const btnText = formKey==='update'  ? 'Submit update' : 'Add project to tracker';
+  const btn     = document.getElementById(btnId);
+
+  if (!url) {
+    // Demo mode — no endpoint configured
+    showSuccess(formKey, payload);
+    btn.disabled = false;
+    btn.textContent = btnText;
+    return;
+  }
+
+  try {
+    const resp = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (resp.ok || resp.status === 202) {
+      showSuccess(formKey, payload);
+    } else {
+      alert('Something went wrong (status ' + resp.status + '). Please try again.');
+    }
+  } catch(e) {
+    alert('Could not reach the server. Check your connection and try again.');
+  }
+  btn.disabled = false;
+  btn.textContent = btnText;
+}
+
+function showSuccess(formKey, payload) {
+  if (formKey === 'update') {
+    document.getElementById('form-update-body').style.display = 'none';
+    document.getElementById('success-update').style.display   = '';
+    document.getElementById('success-update-msg').textContent =
+      payload.projectName + ' · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  } else {
+    document.getElementById('form-newproj-body').style.display = 'none';
+    document.getElementById('success-newproj').style.display   = '';
+    document.getElementById('success-newproj-msg').textContent =
+      payload.projectName + ' added to the tracker.';
+  }
+}
+
+function resetUpdate() {
+  selectedProject=null;selectedStatus=null;
+  document.getElementById('form-update-body').style.display='';
+  document.getElementById('success-update').style.display='none';
+  document.getElementById('a-name').value='';
+  document.getElementById('a-update').value='';
+  document.getElementById('a-bo-date').value='';
+  document.getElementById('a-bo-val').value='';
+  document.getElementById('a-resolution').value='';
+  document.getElementById('a-linedown').value='';
+  ['track','risk','crit'].forEach(k=>document.getElementById('sbtn-'+k).className='status-opt');
+  clearProject();
+}
+
+function resetNewProj() {
+  document.getElementById('form-newproj-body').style.display='';
+  document.getElementById('success-newproj').style.display='none';
+  ['b-name','b-owner','b-cr','b-background','b-firstupdate','b-bo-val'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  ['b-bo-date','b-linedown','b-resolution'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+}
+
+function switchTab(name, btn) {
+  document.getElementById('tab-update').style.display  = name==='update'  ? '' : 'none';
+  document.getElementById('tab-newproj').style.display = name==='newproj' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
