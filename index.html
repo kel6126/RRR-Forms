@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -116,11 +117,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="config-panel" id="cfg">
   <div class="config-field">
     <label>UPDATE flow URL (Form A)</label>
-    <input id="cfg-update" placeholder="https://prod-xx.westus.logic.azure.com/...">
+    <input id="cfg-update" placeholder="https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1">
   </div>
   <div class="config-field">
     <label>NEW PROJECT flow URL (Form B)</label>
-    <input id="cfg-newproj" placeholder="https://prod-xx.westus.logic.azure.com/...">
+    <input id="cfg-newproj" placeholder="https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1">
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <button class="config-save" onclick="saveConfig()">Save</button>
@@ -142,13 +143,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- ══ FORM A — SUBMIT UPDATE ══════════════════════════════════════════════ -->
 <div id="tab-update" class="wrap">
 
-  <div id="success-update" style="display:none">
-    <div class="success-card">
-      <div class="success-icon">✓</div>
-      <div class="success-title">Update submitted</div>
-      <div class="success-sub" id="success-update-msg"></div>
+  <div id="toast-update" style="display:none;background:#EAF3DE;border:1px solid #B5D99A;border-radius:10px;padding:11px 14px;margin-bottom:12px;flex-direction:row;align-items:center;gap:10px">
+    <span style="font-size:20px;flex-shrink:0">✓</span>
+    <div>
+      <div style="font-size:13px;font-weight:500;color:#27500A" id="toast-update-msg"></div>
+      <div style="font-size:12px;color:#3B6D11;margin-top:2px">Update saved — pick another project below to submit another update.</div>
     </div>
-    <button class="another-btn" onclick="resetUpdate()">Submit another update</button>
   </div>
 
   <div id="form-update-body">
@@ -329,8 +329,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 let CFG = {
-  updateUrl:  localStorage.getItem('rrr_update_url')  || '',
-  newprojUrl: localStorage.getItem('rrr_newproj_url') || '',
+  updateUrl:  localStorage.getItem('rrr_update_url')  || 'https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1',
+  newprojUrl: localStorage.getItem('rrr_newproj_url') || 'https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1',
 };
 function toggleConfig(){
   const p=document.getElementById('cfg');
@@ -542,10 +542,17 @@ async function sendToFlow(url, payload, formKey) {
 
 function showSuccess(formKey, payload) {
   if (formKey === 'update') {
-    document.getElementById('form-update-body').style.display = 'none';
-    document.getElementById('success-update').style.display   = '';
-    document.getElementById('success-update-msg').textContent =
-      payload.projectName + ' · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    // Show toast at top, keep form visible, reset update fields only — keep name
+    const toast = document.getElementById('toast-update');
+    toast.style.display = 'flex';
+    document.getElementById('toast-update-msg').textContent =
+      'Saved: ' + payload.projectName + ' · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    // Scroll toast into view
+    toast.scrollIntoView({behavior:'smooth', block:'start'});
+    // Auto-hide toast after 6 seconds
+    setTimeout(() => { toast.style.display = 'none'; }, 6000);
+    // Reset update fields but keep name and clear project so they pick next one
+    clearProjectKeepName();
   } else {
     document.getElementById('form-newproj-body').style.display = 'none';
     document.getElementById('success-newproj').style.display   = '';
@@ -555,17 +562,34 @@ function showSuccess(formKey, payload) {
 }
 
 function resetUpdate() {
+  // Full reset including name — used if someone wants to start completely fresh
   selectedProject=null;selectedStatus=null;
-  document.getElementById('form-update-body').style.display='';
-  document.getElementById('success-update').style.display='none';
+  document.getElementById('toast-update').style.display='none';
   document.getElementById('a-name').value='';
+  clearUpdateFields();
+  clearProject();
+}
+
+function clearUpdateFields() {
+  // Clears only the update-specific fields — keeps name intact
+  selectedProject=null;selectedStatus=null;
   document.getElementById('a-update').value='';
   document.getElementById('a-bo-date').value='';
   document.getElementById('a-bo-val').value='';
   document.getElementById('a-resolution').value='';
   document.getElementById('a-linedown').value='';
   ['track','risk','crit'].forEach(k=>document.getElementById('sbtn-'+k).className='status-opt');
+}
+
+function clearProjectKeepName() {
+  // Called after successful submit — clears project + update fields, keeps name
+  clearUpdateFields();
   clearProject();
+  // Focus back on the search box so they can immediately pick next project
+  setTimeout(() => {
+    const inp = document.getElementById('proj-search-a');
+    if (inp) inp.focus();
+  }, 300);
 }
 
 function resetNewProj() {
