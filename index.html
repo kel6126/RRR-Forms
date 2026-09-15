@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,9 +104,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .config-field input:focus{border-color:var(--orange)}
 .config-save{padding:7px 16px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500}
 .config-status{font-size:11px;color:#6EE7B7;margin-left:8px}
+
+.signin-bar{background:#1B3A5C;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.signin-bar .signed-in{color:#6EE7B7;font-weight:600}
+.signin-bar .signed-out{color:#FCA5A5;font-weight:600}
+.signin-btn{padding:6px 16px;background:#F47920;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.signin-btn:hover{opacity:.88}
 </style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js">
+// Init auth on load
+initAuth();
+</script>
 </head>
 <body>
+<div class="signin-bar" id="signin-bar">
+  <div id="signin-status" class="signed-out">⚠ Not signed in — please sign in with your Avanos account to submit updates</div>
+  <button class="signin-btn" id="signin-btn" onclick="signIn()">Sign in with Avanos</button>
+</div>
+
 
 <!-- Config bar (admin only, hidden after setup) -->
 <div class="config-bar">
@@ -328,10 +342,119 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-let CFG = {
-  updateUrl:  localStorage.getItem('rrr_update_url')  || 'https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1',
-  newprojUrl: localStorage.getItem('rrr_newproj_url') || 'https://default966f59474ca34c16a15bef064533c7.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/24/workflows/5ced7d7f9c80426a88c0a3abcdaf93e2/triggers/manual/paths/invoke?api-version=1',
+// ── SharePoint config ─────────────────────────────────────────────────────────
+const SP_SITE    = 'https://aventcorp.sharepoint.com/sites/O365Grp-OPSSustainingPMR';
+const SP_API     = SP_SITE + '/_api/web/lists';
+const PROJ_LIST  = 'a14e1741-6c08-4d4d-bdf6-0a0c8d4722ff';
+const UPD_LIST   = '23ff6180-0464-4906-9baf-83ebfa233ec4';
+const TENANT_ID  = '966f5947-4ca3-4c16-a15b-ef064533c7e0';
+const CLIENT_ID  = '04b07795-8ddb-461a-bbee-02f9e1bf7b46'; // Microsoft Azure CLI - public client, no secret needed
+
+// ── MSAL setup ────────────────────────────────────────────────────────────────
+const msalConfig = {
+  auth: {
+    clientId: CLIENT_ID,
+    authority: 'https://login.microsoftonline.com/' + TENANT_ID,
+    redirectUri: window.location.origin + window.location.pathname,
+  },
+  cache: { cacheLocation: 'sessionStorage' }
 };
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+const SP_SCOPES = ['https://aventcorp.sharepoint.com/AllSites.Write'];
+
+let spToken = null;
+let currentAccount = null;
+
+async function initAuth() {
+  await msalInstance.initialize();
+  // Handle redirect after login
+  const result = await msalInstance.handleRedirectPromise();
+  if (result) {
+    currentAccount = result.account;
+    spToken = result.accessToken;
+    updateSignInUI(true);
+    return;
+  }
+  // Check if already signed in
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    currentAccount = accounts[0];
+    try {
+      const resp = await msalInstance.acquireTokenSilent({
+        scopes: SP_SCOPES, account: currentAccount
+      });
+      spToken = resp.accessToken;
+      updateSignInUI(true);
+    } catch(e) {
+      updateSignInUI(false);
+    }
+  }
+}
+
+function updateSignInUI(signedIn) {
+  const status = document.getElementById('signin-status');
+  const btn = document.getElementById('signin-btn');
+  if (signedIn && currentAccount) {
+    status.className = 'signed-in';
+    status.textContent = '✓ Signed in as ' + currentAccount.username;
+    btn.textContent = 'Sign out';
+    btn.onclick = signOut;
+  } else {
+    status.className = 'signed-out';
+    status.textContent = '⚠ Not signed in — please sign in with your Avanos account to submit updates';
+    btn.textContent = 'Sign in with Avanos';
+    btn.onclick = signIn;
+  }
+}
+
+async function signIn() {
+  try {
+    const result = await msalInstance.loginPopup({ scopes: SP_SCOPES });
+    currentAccount = result.account;
+    spToken = result.accessToken;
+    updateSignInUI(true);
+  } catch(e) {
+    alert('Sign in failed: ' + e.message);
+  }
+}
+
+function signOut() {
+  msalInstance.logoutPopup({ account: currentAccount });
+  spToken = null; currentAccount = null;
+  updateSignInUI(false);
+}
+
+async function getToken() {
+  if (!currentAccount) { alert('Please sign in first.'); return null; }
+  try {
+    const resp = await msalInstance.acquireTokenSilent({ scopes: SP_SCOPES, account: currentAccount });
+    return resp.accessToken;
+  } catch(e) {
+    const resp = await msalInstance.acquireTokenPopup({ scopes: SP_SCOPES });
+    return resp.accessToken;
+  }
+}
+
+// ── Write to SharePoint ───────────────────────────────────────────────────────
+async function writeToSP(listId, fields) {
+  const token = await getToken();
+  if (!token) return false;
+  const url = SP_SITE + '/_api/web/lists(guid\'' + listId + '\')/items';
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json;odata=nometadata',
+      'Content-Type': 'application/json;odata=nometadata',
+    },
+    body: JSON.stringify(fields)
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error('SharePoint error ' + resp.status + ': ' + err);
+  }
+  return true;
+}
 function toggleConfig(){
   const p=document.getElementById('cfg');
   p.classList.toggle('open');
@@ -514,50 +637,46 @@ async function sendToFlow(url, payload, formKey) {
   const btnText = formKey==='update'  ? 'Submit update' : 'Add project to tracker';
   const btn     = document.getElementById(btnId);
 
-  if (!url) {
-    // Demo mode — no endpoint configured
+  try {
+    if (formKey === 'update') {
+      // Write update to RRR Updates Log
+      await writeToSP(UPD_LIST, {
+        Title:        payload.projectName,
+        ProjectName:  payload.projectName,
+        SubmittedBy:  payload.submittedBy,
+        UpdateText:   payload.updateText,
+        StatusChange: payload.statusChange || '',
+        BOStartDate:  payload.boStartDate  || null,
+        ProjectedBO:  payload.projectedBO  ? parseFloat(payload.projectedBO) : null,
+        Resolution:   payload.resolution   || '',
+        LineDown:     payload.lineDown     || '',
+        SubmittedAt:  payload.submittedAt,
+      });
+    } else {
+      // Write new project to RRR Projects
+      await writeToSP(PROJ_LIST, {
+        Title:       payload.projectName,
+        Owner:       payload.owner        || '',
+        CRNumber:    payload.crNumber     || '',
+        Status:      payload.status       || 'On Track',
+        Section:     payload.section      || 'General',
+        Category:    payload.category     || 'Supply Risk',
+        Background:  payload.background   || '',
+        ProductLine: payload.productLine  || '',
+        BOStartDate: payload.boStartDate  || null,
+        ProjectedBO: payload.projectedBO  ? parseFloat(payload.projectedBO) : null,
+        LineDown:    payload.lineDown     || '',
+        Resolution:  payload.resolution   || '',
+        FirstUpdate: payload.firstUpdate  || '',
+        AddedDate:   new Date().toISOString(),
+      });
+    }
     showSuccess(formKey, payload);
+  } catch(e) {
+    alert('Submission failed: ' + e.message + '\nMake sure you are signed in with your Avanos account.');
+  } finally {
     btn.disabled = false;
     btn.textContent = btnText;
-    return;
-  }
-
-  try {
-    const resp = await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    if (resp.ok || resp.status === 202) {
-      showSuccess(formKey, payload);
-    } else {
-      alert('Something went wrong (status ' + resp.status + '). Please try again.');
-    }
-  } catch(e) {
-    alert('Could not reach the server. Check your connection and try again.');
-  }
-  btn.disabled = false;
-  btn.textContent = btnText;
-}
-
-function showSuccess(formKey, payload) {
-  if (formKey === 'update') {
-    // Show toast at top, keep form visible, reset update fields only — keep name
-    const toast = document.getElementById('toast-update');
-    toast.style.display = 'flex';
-    document.getElementById('toast-update-msg').textContent =
-      'Saved: ' + payload.projectName + ' · ' + new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    // Scroll toast into view
-    toast.scrollIntoView({behavior:'smooth', block:'start'});
-    // Auto-hide toast after 6 seconds
-    setTimeout(() => { toast.style.display = 'none'; }, 6000);
-    // Reset update fields but keep name and clear project so they pick next one
-    clearProjectKeepName();
-  } else {
-    document.getElementById('form-newproj-body').style.display = 'none';
-    document.getElementById('success-newproj').style.display   = '';
-    document.getElementById('success-newproj-msg').textContent =
-      payload.projectName + ' added to the tracker.';
   }
 }
 
